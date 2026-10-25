@@ -40,3 +40,34 @@ td small, td .muted, .table-footer { font-size: 12px; }
   td, .table-cell { font-size: 12px; }
   .app-footer { font-size: 10px; }
 }
+
+
+/* High-contrast, lower-glare reading pass for order and receiving details. */
+:root {
+  --muted: #5f6680;
+  --bg: #f1f2f8;
+}
+body, .app-shell { background: #f1f2f8; color: #20233a; }
+.content-area { color: #20233a; }
+.sidebar { background: #ffffff; }
+.nav-item { color: #555d78; }
+.nav-item svg { color: #707995; }
+.nav-label { color: #6f7690; }
+.workspace-switch small, .help-card p { color: #626984; }
+.app-footer { color: #626984; }
+.table-footer, .toolbar, .table-wrap, .panel, .stat-card { color: #20233a; }
+table td, td, .table-cell { color: #303650; }
+td small, td .muted, .table-footer, .page-heading p { color: #5f6680; }
+.status, .status-badge { font-weight: 700; }
+.receive-summary { background: #efedff; border: 1px solid #d9d2ff; }
+.receive-summary small { color: #4f5672; font-size: 12px; font-weight: 600; }
+.receive-summary b { color: #352a86; font-size: 14px; }
+.receive-item { background: #ffffff; border-color: #dfe2ee; }
+.receive-item>div b { color: #20233a; font-size: 14px; font-weight: 700; }
+.receive-item>div small { color: #3f4863; font-size: 12px; line-height: 1.8; font-weight: 500; }
+.receive-item label { color: #343b55; font-size: 12px; font-weight: 700; }
+.receive-item label input { color: #20233a; background: #fff; border-color: #cbd0e0; }
+input::placeholder, textarea::placeholder { color: #747c96; opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
