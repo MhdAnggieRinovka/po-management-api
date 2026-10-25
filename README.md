@@ -43,6 +43,23 @@ Backend aplikasi Purchase Order (PO) menggunakan Laravel 13 dan MySQL.
 
 Jangan gunakan `migrate:fresh` pada database yang berisi data penting. Seeder tidak menyimpan kredensial contoh secara default. Jangan memakai password produksi yang lemah atau membagikan file `.env`.
 
+## Frontend
+
+Frontend workspace menggunakan React, TypeScript, Vite, dan Tailwind CSS. Untuk menjalankan lokal:
+
+```bash
+npm install
+npm run dev
+```
+
+Jalankan Laravel di terminal terpisah dengan `php artisan serve`, lalu buka `http://127.0.0.1:8000`. Untuk build produksi frontend:
+
+```bash
+npm run build
+```
+
+Frontend menggunakan session cookie Laravel pada origin yang sama; tidak menyimpan password atau session token di local storage. Login memanggil endpoint CSRF terlebih dahulu. Tampilan mendukung overview, purchase orders, penerimaan barang, supplier, produk, dan pengaturan akun. Google Calendar masih berupa status koneksi karena OAuth belum diterapkan.
+
 ## API
 
 Semua endpoint di bawah memakai prefix `/api`. Endpoint selain login dan token CSRF membutuhkan session login.
