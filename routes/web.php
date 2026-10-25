@@ -51,7 +51,7 @@ Route::prefix('api')->group(function () {
             Route::delete('/products/{product}', [ProductController::class, 'destroy']);
         });
 
-        Route::middleware('role:admin,sales,warehouse')->group(function () {
+        Route::middleware('role:admin,sales')->group(function () {
             Route::post('/purchase-orders', [PurchaseOrderController::class, 'store']);
             Route::post('/purchase-orders/{purchaseOrder}/cancel', [PurchaseOrderController::class, 'cancel']);
         });
