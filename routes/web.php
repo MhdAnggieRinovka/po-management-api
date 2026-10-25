@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\GoogleCalendarController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\SupplierController;
@@ -19,8 +21,15 @@ Route::prefix('api')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
 
     Route::middleware('auth')->group(function () {
-        Route::get('/me', [AuthController::class, 'me']);\n        Route::get('/notifications', [NotificationController::class, 'index']);\n        Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);\n        Route::patch('/notifications/{notificationId}/read', [NotificationController::class, 'markRead']);\n        Route::get('/google-calendar/status', [GoogleCalendarController::class, 'status']);\n        Route::delete('/google-calendar/connection', [GoogleCalendarController::class, 'disconnect']);
+        Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
+
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+        Route::patch('/notifications/{notificationId}/read', [NotificationController::class, 'markRead']);
+
+        Route::get('/google-calendar/status', [GoogleCalendarController::class, 'status']);
+        Route::delete('/google-calendar/connection', [GoogleCalendarController::class, 'disconnect']);
 
         Route::middleware('role:admin,sales,warehouse')->group(function () {
             Route::get('/suppliers', [SupplierController::class, 'index']);
