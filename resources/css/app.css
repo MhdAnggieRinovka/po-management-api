@@ -122,3 +122,11 @@ input::placeholder, textarea::placeholder { color: #747c96; opacity: 1; }
 .list-context-count { flex:0 0 auto; padding:7px 11px; border:1px solid #ddd9ff; border-radius:9px; background:#f0edff; color:#5141bd; font-size:12px; font-weight:750; }
 .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 @media(max-width:600px) { .list-context { align-items:flex-start; padding:14px; }.list-context-count { font-size:11px; } }
+
+
+/* Purchase order detail modal is read-only and visually distinct from receiving. */
+.po-detail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:0 0 18px; }
+.po-detail-grid>div { display:flex; flex-direction:column; gap:6px; padding:13px 15px; border:1px solid #e0e3ef; border-radius:11px; background:#fafaff; min-width:0; }
+.po-detail-grid small { color:#626984; font-size:12px; font-weight:600; }
+.po-detail-grid b { color:#252943; font-size:14px; overflow-wrap:anywhere; }
+@media(max-width:560px) { .po-detail-grid { grid-template-columns:1fr; } }
