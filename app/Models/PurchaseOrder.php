@@ -50,7 +50,7 @@ class PurchaseOrder extends Model
     public function isOverdue(): bool
     {
         return $this->expected_delivery_date !== null
-            && $this->expected_delivery_date->isPast()
+            && $this->expected_delivery_date->isBefore(today())
             && ! in_array($this->status, [self::STATUS_RECEIVED, self::STATUS_CANCELLED], true);
     }
 }
