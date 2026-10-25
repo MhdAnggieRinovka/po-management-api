@@ -25,7 +25,7 @@ class PurchaseOrderController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        abort_unless(in_array($request->user()->role, ['admin', 'sales', 'warehouse'], true), 403);
+        abort_unless(in_array($request->user()->role, ['admin', 'sales'], true), 403);
 
         $data = $request->validate([
             'po_number' => ['required', 'string', 'max:60', 'unique:purchase_orders,po_number'],
@@ -109,7 +109,7 @@ class PurchaseOrderController extends Controller
 
     public function cancel(Request $request, PurchaseOrder $purchaseOrder): JsonResponse
     {
-        abort_unless($request->user()->role === 'admin' || $purchaseOrder->created_by === $request->user()->id, 403);
+        abort_unless($request->user()->role === 'admin' || ($request->user()->role === 'sales' && $purchaseOrder->created_by === $request->user()->id), 403);
 
         if ($purchaseOrder->status === PurchaseOrder::STATUS_RECEIVED) {
             return response()->json(['message' => 'PO yang sudah diterima tidak dapat dibatalkan.'], 409);
