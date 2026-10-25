@@ -29,19 +29,19 @@ Backend aplikasi Purchase Order (PO) menggunakan Laravel 13 dan MySQL.
    php artisan key:generate
    ```
 
-5. Jalankan migration secara aman (tidak menghapus tabel):
+5. Jika ingin membuat admin awal, isi `ADMIN_NAME`, `ADMIN_EMAIL`, dan `ADMIN_PASSWORD` pada `.env` dengan nilai milikmu sendiri, lalu jalankan `php artisan db:seed`. Seeder tidak membuat akun jika variabel tersebut kosong.\n6. Jalankan migration secara aman (tidak menghapus tabel):
 
    ```bash
    php artisan migrate
    ```
 
-6. Jalankan aplikasi:
+7. Jalankan aplikasi:
 
    ```bash
    php artisan serve
    ```
 
-Jangan gunakan `migrate:fresh` pada database yang berisi data penting. Seeder bawaan Laravel membuat user contoh `test@example.com`; untuk login, tetapkan password yang diketahui pada lingkungan lokal secara aman atau buat user melalui proses administrasi yang disediakan aplikasi.
+Jangan gunakan `migrate:fresh` pada database yang berisi data penting. Seeder tidak menyimpan kredensial contoh secara default. Jangan memakai password produksi yang lemah atau membagikan file `.env`.
 
 ## API
 
