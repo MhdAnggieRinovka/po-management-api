@@ -50,6 +50,7 @@ function App(){
   const [suppliers,setSuppliers]=useState<Supplier[]>([]);
   const [products,setProducts]=useState<Product[]>([]);
   const [loading,setLoading]=useState(false);
+  const [initialDataLoaded,setInitialDataLoaded]=useState(false);
   const [error,setError]=useState('');
   const [success,setSuccess]=useState('');
   const [search,setSearch]=useState('');
@@ -71,7 +72,7 @@ function App(){
       setSuppliers(sRes.data?.data || sRes.data || []);
       setProducts(pRes.data?.data || pRes.data || []);
     }catch(e){setError(e instanceof Error?e.message:'Gagal memuat data.');}
-    finally{setLoading(false);}
+    finally{setLoading(false);setInitialDataLoaded(true);}
   }
   useEffect(()=>{request<any>('/me').then(r=>setUser(r.data)).catch(()=>setUser(null)).finally(()=>setBooting(false));},[]);
   useEffect(()=>{if(user)loadData();},[user]);
@@ -120,7 +121,7 @@ function App(){
       setModal(null);setSelectedPO(null);setReceivingQty({});setSuccess('Penerimaan barang berhasil dicatat.');await loadData();
     }catch(err){setError(err instanceof Error?err.message:'Gagal mencatat penerimaan.');}
   }
-  if(booting)return <div className="boot"><div className="brand-mark">P</div><LoaderCircle className="spin" size={22}/><span>Menyiapkan workspace...</span></div>;
+  if(booting||(user&&!initialDataLoaded))return <div className="workspace-skeleton" aria-label="Memuat workspace" role="status"><aside className="skeleton-sidebar"><div className="skeleton-brand"><span className="skeleton-block brand-block"/><span className="skeleton-lines"><i/><i/></span></div><div className="skeleton-workspace skeleton-block"/><div className="skeleton-nav">{Array.from({length:6},(_,i)=><i key={i}/>)}</div><div className="skeleton-help skeleton-block"/></aside><main className="skeleton-main"><header className="skeleton-topbar"><i/><i/></header><section className="skeleton-content"><div className="skeleton-heading"><i/><i/></div><div className="skeleton-banner skeleton-block"><i/><i/><i/></div><div className="skeleton-stats">{Array.from({length:4},(_,i)=><div className="skeleton-card skeleton-block" key={i}><i/><i/><i/></div>)}</div><div className="skeleton-lower"><div className="skeleton-table skeleton-block"><i/><i/><i/><i/></div><div className="skeleton-card skeleton-block"/></div><p className="skeleton-message"><span className="skeleton-dot"/> Memuat data workspace...</p></section></main></div>;
   if(!user)return <main className="login-shell"><section className="login-art"><div className="login-brand"><span className="brand-mark">P</span><span>Procura<span className="brand-dot">.</span></span></div><div className="login-copy"><div className="eyebrow"><span className="pulse-dot"/> PROCUREMENT WORKSPACE</div><h1>Every purchase,<br/><em>under control.</em></h1><p>Kelola pengadaan, pantau penerimaan, dan jaga seluruh proses pembelian tetap terorganisir dalam satu tempat.</p><div className="login-proof"><div className="avatar-stack"><span>A</span><span>S</span><span>G</span></div><span>One workspace for your whole team</span></div></div><div className="login-art-footer"><span>PROCURA WORKSPACE</span><span>BUILT FOR BETTER OPERATIONS</span></div></section><section className="login-form-wrap"><form className="login-form" onSubmit={login}><div className="mobile-brand"><span className="brand-mark">P</span><b>Procura.</b></div><span className="form-kicker">WELCOME BACK</span><h2>Masuk ke akunmu</h2><p className="muted">Gunakan akun yang sudah terdaftar untuk melanjutkan.</p>{loginError&&<div className="alert error"><AlertCircle size={17}/>{loginError}</div>}<label>Email address<input type="email" autoComplete="username" placeholder="nama@perusahaan.com" value={loginEmail} onChange={e=>setLoginEmail(e.target.value)} required/></label><label>Password<input type="password" autoComplete="current-password" placeholder="Masukkan password" value={loginPassword} onChange={e=>setLoginPassword(e.target.value)} required/></label><button className="btn primary full" disabled={loginBusy}>{loginBusy?<LoaderCircle className="spin" size={17}/>:null}Masuk ke workspace <ChevronRight size={17}/></button><div className="secure-note"><ShieldCheck size={16}/> Secure session · Role-based access</div></form><footer className="login-bottom">© 2026 Procura Workspace <span>Private business operations</span></footer></section></main>;
 
   const nav:[Page,string,React.ReactNode][]=[
