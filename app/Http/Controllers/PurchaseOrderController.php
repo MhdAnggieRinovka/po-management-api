@@ -15,9 +15,6 @@ class PurchaseOrderController extends Controller
     {
         $query = PurchaseOrder::query()->with(['supplier', 'creator', 'items.product'])->latest();
 
-        if ($request->user()->role === 'sales') {
-            $query->where('created_by', $request->user()->id);
-        }
 
         if ($request->filled('status')) {
             $query->where('status', $request->string('status')->toString());
@@ -69,9 +66,6 @@ class PurchaseOrderController extends Controller
 
     public function show(Request $request, PurchaseOrder $purchaseOrder): JsonResponse
     {
-        if ($request->user()->role === 'sales' && $purchaseOrder->created_by !== $request->user()->id) {
-            abort(403);
-        }
 
         return response()->json(['data' => $purchaseOrder->load(['supplier', 'creator', 'items.product', 'calendarEvents'])]);
     }
