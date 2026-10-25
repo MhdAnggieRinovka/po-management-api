@@ -1,58 +1,93 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# PO Management API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Backend aplikasi Purchase Order (PO) menggunakan Laravel 13 dan MySQL.
 
-## About Laravel
+## Fitur fondasi
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Role pengguna: `admin`, `sales`, dan `warehouse`.
+- Master data supplier dan produk.
+- Pembuatan PO dengan detail item dalam satu transaksi database.
+- Pelacakan penerimaan barang per item dan status PO.
+- Notifikasi database Laravel.
+- Fondasi penyimpanan koneksi Google Calendar per pengguna; token refresh dienkripsi melalui Laravel Crypt.
+- Login berbasis session dan endpoint JSON.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Setup lokal
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+1. Pastikan PHP 8.3+, Composer, dan MySQL tersedia.
+2. Salin konfigurasi contoh jika belum memiliki `.env`:
 
-## Learning Laravel
+   ```bash
+   copy .env.example .env
+   ```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+3. Atur `DB_CONNECTION=mysql`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, dan `DB_PASSWORD` sesuai database lokal.
+4. Pasang dependency dan buat app key:
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+   ```bash
+   composer install
+   php artisan key:generate
+   ```
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+5. Jalankan migration secara aman (tidak menghapus tabel):
 
-## Agentic Development
+   ```bash
+   php artisan migrate
+   ```
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+6. Jalankan aplikasi:
+
+   ```bash
+   php artisan serve
+   ```
+
+Jangan gunakan `migrate:fresh` pada database yang berisi data penting. Seeder bawaan Laravel membuat user contoh `test@example.com`; untuk login, tetapkan password yang diketahui pada lingkungan lokal secara aman atau buat user melalui proses administrasi yang disediakan aplikasi.
+
+## API
+
+Semua endpoint di bawah memakai prefix `/api`. Endpoint selain login dan token CSRF membutuhkan session login.
+
+| Method | Endpoint | Kegunaan |
+|---|---|---|
+| GET | `/api/csrf-token` | Mendapatkan CSRF token untuk session |
+| POST | `/api/login` | Login dengan email dan password |
+| GET | `/api/me` | Profil pengguna aktif |
+| POST | `/api/logout` | Logout |
+| GET | `/api/suppliers` | Daftar supplier |
+| POST | `/api/suppliers` | Membuat supplier (admin) |
+| GET | `/api/products` | Daftar produk |
+| POST | `/api/products` | Membuat produk (admin) |
+| GET | `/api/purchase-orders` | Daftar PO |
+| POST | `/api/purchase-orders` | Membuat PO dan item |
+| GET | `/api/purchase-orders/{id}` | Detail PO |
+| POST | `/api/purchase-orders/{id}/receive` | Mencatat penerimaan (admin/gudang) |
+| POST | `/api/purchase-orders/{id}/cancel` | Membatalkan PO sesuai izin |
+| GET | `/api/notifications` | Daftar notifikasi |
+| PATCH | `/api/notifications/{id}/read` | Tandai notifikasi dibaca |
+| PATCH | `/api/notifications/read-all` | Tandai semua notifikasi dibaca |
+| GET | `/api/google-calendar/status` | Status koneksi kalender pengguna |
+| DELETE | `/api/google-calendar/connection` | Putus koneksi kalender |
+
+Untuk request POST/PUT/PATCH/DELETE, gunakan cookie session dan header `X-CSRF-TOKEN` dari endpoint `/api/csrf-token`. Client harus menyimpan cookie session di antara request.
+
+## Status PO
+
+- `OPEN`: belum ada penerimaan.
+- `PARTIALLY_RECEIVED`: sebagian barang sudah diterima.
+- `RECEIVED`: seluruh barang sudah diterima.
+- `CANCELLED`: PO dibatalkan.
+- PO terlambat dihitung dari tanggal estimasi dan tidak disimpan sebagai status terpisah.
+
+## Catatan integrasi
+
+Google Calendar belum tersambung ke Google OAuth/API secara end-to-end. Saat ini tersedia model penyimpanan koneksi, status, dan endpoint status/pemutusan koneksi. Untuk sinkronisasi event yang sesungguhnya masih diperlukan Google Cloud project, OAuth consent screen, credential OAuth di konfigurasi lingkungan, callback OAuth, dan proses create/update/delete event.
+
+## Pengujian
+
+Jalankan test suite Laravel setelah dependency terpasang:
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+php artisan test
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Perubahan kode yang di-commit ke GitHub belum dianggap lulus pengujian sampai command ini berhasil dijalankan pada lingkungan project.
