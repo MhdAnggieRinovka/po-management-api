@@ -7,7 +7,6 @@ import {
   Settings, ShieldCheck, ShoppingCart, Truck, Users, X, RefreshCw, LoaderCircle,
   MoreHorizontal, ArrowUpRight as ExternalLink
 } from 'lucide-react';
-import './app.css';
 
 type User = { id:number; name:string; email:string; role:'admin'|'sales'|'warehouse'; is_active:boolean };
 type Supplier = { id:number; supplier_code:string; name:string; email?:string|null; phone?:string|null; address?:string|null; is_active:boolean };
