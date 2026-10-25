@@ -19,7 +19,7 @@ Route::prefix('api')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
 
     Route::middleware('auth')->group(function () {
-        Route::get('/me', [AuthController::class, 'me']);
+        Route::get('/me', [AuthController::class, 'me']);\n        Route::get('/notifications', [NotificationController::class, 'index']);\n        Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);\n        Route::patch('/notifications/{notificationId}/read', [NotificationController::class, 'markRead']);\n        Route::get('/google-calendar/status', [GoogleCalendarController::class, 'status']);\n        Route::delete('/google-calendar/connection', [GoogleCalendarController::class, 'disconnect']);
         Route::post('/logout', [AuthController::class, 'logout']);
 
         Route::middleware('role:admin,sales,warehouse')->group(function () {
