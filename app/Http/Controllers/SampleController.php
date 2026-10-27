@@ -26,8 +26,9 @@ class SampleController extends Controller
             'sample_date'=>['required','date'],
             'notes'=>['nullable','string'],
         ]);
+        $data['sample_number'] = ($data['sample_number'] ?? null) ?: 'SMP-'.now()->format('ymd').'-'.Str::upper(Str::random(5));
         $sample=Sample::create($data+[
-            'sample_number'=>$data['sample_number'] ?: 'SMP-'.now()->format('ymd').'-'.Str::upper(Str::random(5)),
+            'sample_number'=>$data['sample_number'],
             'status'=>'PLANNED',
             'created_by'=>$request->user()->id,
         ]);
@@ -39,8 +40,11 @@ class SampleController extends Controller
         abort_unless(in_array($request->user()->role,['admin','warehouse'],true),403);
         if ($sample->status!=='PLANNED') return response()->json(['message'=>'Sample ini bukan dalam status menunggu dikeluarkan.'],409);
         DB::transaction(function () use ($sample) {
-            $stock=InventoryStock::where('product_id',$sample->product_id)->lockForUpdate()->firstOrFail();
-            if ((float)$stock->quantity_on_hand < (float)$sample->quantity) abort(422,'Stok fisik tidak mencukupi untuk mengeluarkan sample.');
+            $stock=InventoryStock::firstOrCreate(['product_id'=>$sample->product_id],['quantity_on_hand'=>0]);
+            $stock=InventoryStock::whereKey($stock->id)->lockForUpdate()->firstOrFail();
+            $committed=(float) \App\Models\Commitment::where('product_id',$sample->product_id)->where('status','COMMITTED')->sum('quantity');
+            $free=(float)$stock->quantity_on_hand-$committed;
+            if ($free < (float)$sample->quantity) abort(422,'Free stock tidak mencukupi untuk mengeluarkan sample karena sebagian stok sudah dikomitmenkan.');
             $stock->decrement('quantity_on_hand',(float)$sample->quantity);
             $sample->update(['status'=>'ISSUED','issued_at'=>now()]);
         });
