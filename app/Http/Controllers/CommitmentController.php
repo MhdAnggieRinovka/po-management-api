@@ -7,7 +7,6 @@ use App\Models\InventoryStock;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
 
 class CommitmentController extends Controller
@@ -36,7 +35,7 @@ class CommitmentController extends Controller
             if ((float) $data['quantity'] > $free) {
                 abort(422, 'Free stock tidak mencukupi. Free stock saat ini: '.max(0, $free).'.');
             }
-            $data['commitment_number'] = $data['commitment_number'] ?: 'COM-'.now()->format('ymd').'-'.Str::upper(Str::random(5));
+            $data['commitment_number'] = ($data['commitment_number'] ?? null) ?: 'COM-'.now()->format('ymd').'-'.Str::upper(Str::random(5));
             return Commitment::create($data + ['status'=>'COMMITTED','created_by'=>$request->user()->id]);
         });
         return response()->json(['data'=>$commitment->load(['product','creator'])],201);
@@ -47,7 +46,8 @@ class CommitmentController extends Controller
         abort_unless(in_array($request->user()->role,['admin','warehouse'],true),403);
         if ($commitment->status !== 'COMMITTED') return response()->json(['message'=>'Hanya commitment aktif yang bisa dikirim.'],409);
         DB::transaction(function () use ($commitment) {
-            $stock=InventoryStock::where('product_id',$commitment->product_id)->lockForUpdate()->firstOrFail();
+            $stock=InventoryStock::firstOrCreate(['product_id'=>$commitment->product_id],['quantity_on_hand'=>0]);
+            $stock=InventoryStock::whereKey($stock->id)->lockForUpdate()->firstOrFail();
             if ((float)$stock->quantity_on_hand < (float)$commitment->quantity) abort(422,'Stok fisik tidak mencukupi untuk pengiriman.');
             $stock->decrement('quantity_on_hand',(float)$commitment->quantity);
             $commitment->update(['status'=>'SHIPPED','shipped_at'=>now()]);
