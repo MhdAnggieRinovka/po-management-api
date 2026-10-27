@@ -4,7 +4,7 @@ import {
   Activity, AlertCircle, ArrowDownRight, ArrowUpRight, Bell, Boxes, CalendarDays,
   Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ClipboardList,
   Command, FilePlus2, LayoutDashboard, LogOut, Menu, Package, Plus, Search,
-  Settings, ShieldCheck, ShoppingCart, Truck, Users, X, RefreshCw, LoaderCircle,
+  Settings, ShieldCheck, ShoppingCart, Truck, Users, X, RefreshCw, LoaderCircle, CalendarClock, FlaskConical, Warehouse, Send,
   MoreHorizontal, ArrowUpRight as ExternalLink
 } from 'lucide-react';
 
@@ -13,7 +13,10 @@ type Supplier = { id:number; supplier_code:string; name:string; email?:string|nu
 type Product = { id:number; product_code:string; name:string; unit:string; description?:string|null; is_active:boolean };
 type POItem = { id:number; product_id:number|null; description:string; quantity:string|number; unit_price:string|number; received_quantity:string|number; product?:Product|null };
 type PO = { id:number; po_number:string; supplier_id:number; created_by:number; order_date:string; expected_delivery_date?:string|null; status:string; notes?:string|null; supplier?:Supplier; creator?:User; items:POItem[]; created_at:string };
-type Page = 'overview'|'purchase-orders'|'suppliers'|'products'|'receiving'|'settings';
+type InventoryRow={product_id:number;product_code:string;product_name:string;unit:string;quantity_on_hand:number|string;committed_quantity:number|string;free_stock:number|string};
+type Commitment={id:number;commitment_number:string;customer_name:string;product_id:number;quantity:number|string;delivery_date:string;status:string;notes?:string|null;product?:Product;creator?:User};
+type Sample={id:number;sample_number:string;customer_name:string;product_id:number;quantity:number|string;sample_date:string;status:string;notes?:string|null;product?:Product;creator?:User};
+type Page = 'overview'|'purchase-orders'|'suppliers'|'products'|'receiving'|'settings'|'inventory'|'commitments'|'samples';
 const API = '/api';
 const money = (n:number) => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n || 0);
 const date = (s?:string|null) => s ? new Date(s).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) : '—';
@@ -49,13 +52,18 @@ function App(){
   const [pos,setPos]=useState<PO[]>([]);
   const [suppliers,setSuppliers]=useState<Supplier[]>([]);
   const [products,setProducts]=useState<Product[]>([]);
+  const [inventory,setInventory]=useState<InventoryRow[]>([]);
+  const [commitments,setCommitments]=useState<Commitment[]>([]);
+  const [samples,setSamples]=useState<Sample[]>([]);
   const [loading,setLoading]=useState(false);
   const [initialDataLoaded,setInitialDataLoaded]=useState(false);
   const [error,setError]=useState('');
   const [success,setSuccess]=useState('');
   const [search,setSearch]=useState('');
   const [statusFilter,setStatusFilter]=useState('ALL');
-  const [modal,setModal]=useState<'po'|'supplier'|'product'|'receive'|'detail'|null>(null);
+  const [modal,setModal]=useState<'po'|'supplier'|'product'|'receive'|'detail'|'commitment'|'sample'|null>(null);
+  const [commitmentForm,setCommitmentForm]=useState({customer_name:'',product_id:'',quantity:'1',delivery_date:new Date(Date.now()+7*86400000).toISOString().slice(0,10),notes:''});
+  const [sampleForm,setSampleForm]=useState({customer_name:'',product_id:'',quantity:'1',sample_date:new Date().toISOString().slice(0,10),notes:''});
   const [selectedPO,setSelectedPO]=useState<PO|null>(null);
   const [receivingQty,setReceivingQty]=useState<Record<number,string>>({});
   const [poForm,setPoForm]=useState({po_number:'',supplier_id:'',order_date:new Date().toISOString().slice(0,10),expected_delivery_date:'',notes:'',product_id:'',description:'',quantity:'1',unit_price:'0'});
@@ -65,12 +73,16 @@ function App(){
   async function loadData(){
     setLoading(true);setError('');
     try{
-      const [poRes,sRes,pRes]=await Promise.all([
-        request<any>('/purchase-orders'),request<any>('/suppliers'),request<any>('/products')
+      const [poRes,sRes,pRes,iRes,cRes,smRes]=await Promise.all([
+        request<any>('/purchase-orders'),request<any>('/suppliers'),request<any>('/products'),
+        request<any>('/inventory'),request<any>('/commitments'),request<any>('/samples')
       ]);
       setPos(poRes.data?.data || poRes.data || []);
       setSuppliers(sRes.data?.data || sRes.data || []);
       setProducts(pRes.data?.data || pRes.data || []);
+      setInventory(iRes.data?.data || iRes.data || []);
+      setCommitments(cRes.data?.data || cRes.data || []);
+      setSamples(smRes.data?.data || smRes.data || []);
     }catch(e){setError(e instanceof Error?e.message:'Gagal memuat data.');}
     finally{setLoading(false);setInitialDataLoaded(true);}
   }
@@ -115,6 +127,17 @@ function App(){
     try{await mutate('/products','POST',{...productForm,is_active:true});setModal(null);setProductForm({product_code:'',name:'',unit:'pcs',description:''});setSuccess('Produk berhasil ditambahkan.');await loadData();}
     catch(err){setError(err instanceof Error?err.message:'Gagal menambahkan produk.');}
   }
+  async function createCommitment(e:FormEvent){
+    e.preventDefault();setError('');
+    try{await mutate('/commitments','POST',{...commitmentForm,product_id:Number(commitmentForm.product_id),quantity:Number(commitmentForm.quantity)});setModal(null);setCommitmentForm({customer_name:'',product_id:'',quantity:'1',delivery_date:new Date(Date.now()+7*86400000).toISOString().slice(0,10),notes:''});setSuccess('Commitment berhasil dibuat dan free stock dialokasikan.');await loadData();}
+    catch(err){setError(err instanceof Error?err.message:'Gagal membuat commitment.');}
+  }
+  async function createSample(e:FormEvent){
+    e.preventDefault();setError('');
+    try{await mutate('/samples','POST',{...sampleForm,product_id:Number(sampleForm.product_id),quantity:Number(sampleForm.quantity)});setModal(null);setSampleForm({customer_name:'',product_id:'',quantity:'1',sample_date:new Date().toISOString().slice(0,10),notes:''});setSuccess('Sample berhasil dicatat. Stok baru berkurang saat sample dikeluarkan.');await loadData();}
+    catch(err){setError(err instanceof Error?err.message:'Gagal mencatat sample.');}
+  }
+  async function runWorkflowAction(path:string,successMessage:string){setError('');try{await mutate(path,'POST');setSuccess(successMessage);await loadData();}catch(err){setError(err instanceof Error?err.message:'Aksi gagal.');}}
   async function receivePO(e:FormEvent){
     e.preventDefault();if(!selectedPO)return;setError('');
     try{
@@ -128,6 +151,9 @@ function App(){
   const nav:[Page,string,React.ReactNode][]=[
     ['overview','Overview',<LayoutDashboard size={18}/>],
     ['purchase-orders','Purchase orders',<ClipboardList size={18}/>],
+    ['inventory','Inventory / Stock',<Warehouse size={18}/>],
+    ['commitments','Commitments',<CalendarClock size={18}/>],
+    ['samples','Sample tracking',<FlaskConical size={18}/>],
     ...(user.role!=='sales'?[['receiving','Goods receiving',<Truck size={18}/>] as [Page,string,React.ReactNode]]:[]),
     ['suppliers','Suppliers',<Users size={18}/>],
     ['products','Products',<Package size={18}/>],
@@ -141,7 +167,7 @@ function App(){
   const openReceive=(po:PO)=>{setSelectedPO(po);setReceivingQty(Object.fromEntries(po.items.map(i=>[i.id,String(Math.max(0,Number(i.quantity)-Number(i.received_quantity)))])));setModal('receive');};
   const openPO=(po:PO,mode:'detail'|'receive')=>{setSelectedPO(po);setReceivingQty(Object.fromEntries(po.items.map(i=>[i.id,'0'])));setModal(mode);};
   const poRows=(rows:PO[])=>rows.map(po=><tr key={po.id}><td><button className="link-button" onClick={()=>openPO(po,page==='receiving'&&canReceive?'receive':'detail')}>{po.po_number}</button><span className="sub-cell">Created {date(po.created_at)}</span></td><td><div className="cell-strong">{po.supplier?.name||`Supplier #${po.supplier_id}`}</div><span className="sub-cell">{po.items.length} item{po.items.length===1?'':'s'}</span></td><td>{date(po.order_date)}</td><td>{date(po.expected_delivery_date)}</td><td><span className="money">{money(total(po))}</span></td><td>{statusBadge(po.status)}</td><td><button className="icon-btn" title={canReceive&&(po.status==='OPEN'||po.status==='PARTIALLY_RECEIVED')?"Receive goods":"View details"} onClick={()=>openPO(po,canReceive&&(po.status==='OPEN'||po.status==='PARTIALLY_RECEIVED')?'receive':'detail')}>{canReceive&&(po.status==='OPEN'||po.status==='PARTIALLY_RECEIVED')?<><Truck size={16}/><span className="sr-only">Receive goods</span></>:<MoreHorizontal size={18}/>}</button></td></tr>);
-  const pageHeader=<div className="page-heading"><div><div className="breadcrumb">WORKSPACE <ChevronRight size={12}/><span>{pageTitle.toUpperCase()}</span></div><h1>{pageTitle}</h1><p>{page==='overview'?'Ringkasan aktivitas dan kondisi pengadaan bisnis kamu.':page==='purchase-orders'?'Kelola semua PO perusahaan, buat pesanan, pantau status, dan buka penerimaan sebagai tindakan cepat.':page==='receiving'?'Antrean khusus Admin dan Warehouse untuk mencatat barang yang benar-benar datang.':page==='suppliers'?'Kelola data vendor dan mitra pemasok.':page==='products'?'Kelola master produk untuk transaksi pengadaan.':'Preferensi workspace dan informasi akun.'}</p></div><div className="heading-actions"><button className="btn secondary" onClick={loadData}><RefreshCw size={16}/> Refresh</button>{page==='purchase-orders'&&canCreatePO&&<button className="btn primary" onClick={()=>setModal('po')}><Plus size={17}/> New purchase order</button>}</div></div>;
+  const pageHeader=<div className="page-heading"><div><div className="breadcrumb">WORKSPACE <ChevronRight size={12}/><span>{pageTitle.toUpperCase()}</span></div><h1>{pageTitle}</h1><p>{page==='overview'?'Ringkasan aktivitas dan kondisi pengadaan bisnis kamu.':page==='purchase-orders'?'Kelola semua PO perusahaan, buat pesanan, pantau status, dan buka penerimaan sebagai tindakan cepat.':page==='receiving'?'Antrean khusus Admin dan Warehouse untuk mencatat barang yang benar-benar datang.':page==='suppliers'?'Kelola data vendor dan mitra pemasok.':page==='products'?'Kelola master produk untuk transaksi pengadaan.':page==='inventory'?'Pantau stok fisik, stok yang sudah dikomitmenkan, dan free stock yang masih bisa dijual.':page==='commitments'?'Catat komitmen barang untuk customer dan jadwal pengiriman mendatang.':page==='samples'?'Catat sample untuk customer; stok berkurang saat sample benar-benar dikeluarkan.':'Preferensi workspace dan informasi akun.'}</p></div><div className="heading-actions"><button className="btn secondary" onClick={loadData}><RefreshCw size={16}/> Refresh</button>{page==='purchase-orders'&&canCreatePO&&<button className="btn primary" onClick={()=>setModal('po')}><Plus size={17}/> New purchase order</button>}</div></div>;
 
   return <div className="app-shell"><aside className={'sidebar '+(mobileNav?'sidebar-open':'')}><div className="sidebar-brand"><span className="brand-mark">P</span><div>procura<span>.</span><small>PROCUREMENT OS</small></div><button className="icon-btn mobile-close" onClick={()=>setMobileNav(false)}><X size={18}/></button></div><div className="workspace-switch"><div className="workspace-icon">AC</div><div><b>Acme Corporation</b><small>Business workspace</small></div><ChevronDown size={15}/></div><div className="nav-label">WORKSPACE</div><nav className="main-nav">{nav.map(([key,label,icon])=><button key={key} className={'nav-item '+(page===key?'active':'')} onClick={()=>{setPage(key);setMobileNav(false);setError('');}}>{icon}<span>{label}</span>{key==='purchase-orders'&&<span className="nav-count">{pos.length}</span>}</button>)}</nav><div className="sidebar-bottom"><div className="help-card"><div className="help-icon"><Command size={16}/></div><b>Need a hand?</b><p>Keep your purchasing workflow running smoothly.</p><button onClick={()=>setPage('settings')}>Workspace settings <ArrowUpRight size={13}/></button></div><div className="user-card"><div className="user-avatar">{user.name.split(' ').map(s=>s[0]).slice(0,2).join('').toUpperCase()}</div><div className="user-info"><b>{user.name}</b><small>{user.role.toUpperCase()}</small></div><button className="icon-btn" title="Logout" onClick={logout}><LogOut size={17}/></button></div></div></aside><div className="mobile-scrim" onClick={()=>setMobileNav(false)}></div><main className="main-area"><header className="topbar"><button className="icon-btn menu-toggle" onClick={()=>setMobileNav(true)}><Menu size={20}/></button><div className="topbar-context"><span className="green-dot"/> All systems operational <span className="topbar-divider">/</span> <span>Workspace</span></div><div className="topbar-right"><button className="icon-btn notification-btn" title="Notifications" onClick={()=>setPage('settings')}><Bell size={18}/><i/></button><span className="topbar-line"/><div className="top-user"><div className="user-avatar small">{user.name.split(' ').map(s=>s[0]).slice(0,2).join('').toUpperCase()}</div><div><b>{user.name}</b><small>{user.role==='admin'?'Administrator':user.role==='sales'?'Sales team':'Warehouse team'}</small></div></div></div></header><div className="content-area">{success&&<div className="alert success"><CheckCircle2 size={17}/>{success}<button className="icon-btn" onClick={()=>setSuccess('')}><X size={15}/></button></div>}{error&&<div className="alert error"><AlertCircle size={17}/>{error}<button className="icon-btn" onClick={()=>setError('')}><X size={15}/></button></div>}{pageHeader}
   {page==='overview'&&<><section className="welcome-banner"><div className="welcome-pattern"><span/><span/><span/><span/></div><div className="welcome-content"><span className="welcome-tag"><Activity size={13}/> YOUR OPERATIONS AT A GLANCE</span><h2>Good day, {user.name.split(' ')[0]} <span>✳</span></h2><p>Here’s what’s happening with your procurement today.</p><button onClick={()=>setPage('purchase-orders')}>Explore purchase orders <ChevronRight size={16}/></button></div><div className="welcome-art"><div className="art-circle circle-one"/><div className="art-circle circle-two"/><div className="art-document"><div/><div/><div/><span><Check size={14}/></span></div></div></section><section className="stats-grid"><StatCard label="Total purchase orders" value={stats.total.toString().padStart(2,'0')} note="All-time purchase orders" icon={<ShoppingCart size={19}/>} tone="purple" trend="Live data"/><StatCard label="Awaiting delivery" value={stats.open.toString().padStart(2,'0')} note="Open purchase orders" icon={<CalendarDays size={19}/>} tone="amber" trend="Needs attention"/><StatCard label="Partially received" value={stats.partial.toString().padStart(2,'0')} note="Items still outstanding" icon={<Boxes size={19}/>} tone="blue" trend="In progress"/><StatCard label="Completed orders" value={stats.received.toString().padStart(2,'0')} note="Fully received" icon={<CheckCircle2 size={19}/>} tone="green" trend="Up to date"/></section><section className="overview-grid"><div className="panel recent-panel"><div className="panel-heading"><div><h3>Recent purchase orders</h3><p>Your latest procurement activity</p></div><button className="text-action" onClick={()=>setPage('purchase-orders')}>View all <ChevronRight size={15}/></button></div>{pos.length? <div className="table-wrap"><table><thead><tr><th>PO NUMBER</th><th>SUPPLIER</th><th>ORDER DATE</th><th>AMOUNT</th><th>STATUS</th><th/></tr></thead><tbody>{pos.slice(0,5).map(po=><tr key={po.id}><td><button className="link-button" onClick={()=>openPO(po,'detail')}>{po.po_number}</button></td><td>{po.supplier?.name||'—'}</td><td>{date(po.order_date)}</td><td className="money">{money(total(po))}</td><td>{statusBadge(po.status)}</td><td><button className="icon-btn" title="View purchase order details" onClick={()=>openPO(po,'detail')}><ChevronRight size={16}/></button></td></tr>)}</tbody></table></div>:<EmptyState icon={<ClipboardList size={23}/>} title="No purchase orders yet" text="Your purchase orders will appear here once you create one." action={canManage?()=>setModal('po'):undefined} actionText="Create first PO"/>}</div><div className="panel quick-panel"><div className="panel-heading"><div><h3>Quick actions</h3><p>Get things done faster</p></div><span className="quick-spark">✳</span></div>{canCreatePO&&<button className="quick-action" onClick={()=>setModal('po')}><span className="quick-icon purple"><FilePlus2 size={18}/></span><span><b>Create purchase order</b><small>Start a new procurement request</small></span><ChevronRight size={17}/></button>}{canReceive&&<button className="quick-action" onClick={()=>setPage('receiving')}><span className="quick-icon blue"><Truck size={18}/></span><span><b>Receive goods</b><small>Update delivery progress</small></span><ChevronRight size={17}/></button>}<button className="quick-action" onClick={()=>setPage('suppliers')}><span className="quick-icon amber"><Users size={18}/></span><span><b>{canManage?'Manage suppliers':'View suppliers'}</b><small>Review your vendor directory</small></span><ChevronRight size={17}/></button><div className="mini-summary"><div className="mini-summary-top"><span>Purchase value</span><span className="mini-period">ALL TIME</span></div><b>{money(stats.spend)}</b><div className="mini-bar"><span style={{width:stats.spend?'100%':'0%'}}/></div><small>Based on current purchase orders</small></div></div></section></>}
