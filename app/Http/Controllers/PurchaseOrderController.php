@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\InventoryStock;
+
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Http\JsonResponse;
@@ -91,6 +93,10 @@ class PurchaseOrderController extends Controller
                 }
 
                 $item->update(['received_quantity' => $newTotal]);
+                if ($item->product_id && (float) $received['received_quantity'] > 0) {
+                    $stock = InventoryStock::firstOrCreate(['product_id' => $item->product_id], ['quantity_on_hand' => 0]);
+                    $stock->increment('quantity_on_hand', (float) $received['received_quantity']);
+                }
             }
 
             $purchaseOrder->load('items');
