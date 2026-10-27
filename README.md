@@ -12,6 +12,24 @@ Backend aplikasi Purchase Order (PO) menggunakan Laravel 13 dan MySQL.
 - Fondasi penyimpanan koneksi Google Calendar per pengguna; token refresh dienkripsi melalui Laravel Crypt.
 - Login berbasis session dan endpoint JSON.
 
+## Inventory, commitment, dan sample
+
+- **Inventory / Stock** menampilkan stok fisik (quantity_on_hand), stok yang masih dikomitmenkan (COMMITTED), dan free stock (fisik - committed).
+- **Commitments** dibuat oleh Admin/Sales untuk customer, produk, kuantitas, dan tanggal pengiriman. Pembuatan commitment mengalokasikan free stock; hanya Admin/Warehouse yang dapat menandai commitment sebagai dikirim. Saat dikirim, stok fisik berkurang dan commitment menjadi SHIPPED. Commitment yang dibatalkan mengembalikan kuantitas ke free stock.
+- **Sample Tracking** mencatat customer, produk, jumlah, tanggal, dan status. Pencatatan awal berstatus PLANNED dan tidak mengurangi stok. Saat Admin/Warehouse memilih Issue sample, stok fisik berkurang dan status menjadi ISSUED.
+- Penerimaan barang melalui Goods Receiving menambah stok fisik untuk item PO yang memiliki product_id.
+- Migration inventory menginisialisasi stok dari kuantitas PO yang sudah pernah diterima, agar data penerimaan historis tetap diperhitungkan.
+
+Endpoint utama:
+- GET /api/inventory
+- GET|POST /api/commitments
+- POST /api/commitments/{id}/ship
+- POST /api/commitments/{id}/cancel
+- GET|POST /api/samples
+- POST /api/samples/{id}/issue
+- POST /api/samples/{id}/cancel
+
+Role: Admin/Sales dapat membuat commitment dan mencatat sample; Admin/Warehouse memproses pengiriman commitment dan pengeluaran sample. Seluruh role dapat melihat inventory, commitments, dan sample.
 ## Setup lokal
 
 1. Pastikan PHP 8.3+, Composer, dan MySQL tersedia.
