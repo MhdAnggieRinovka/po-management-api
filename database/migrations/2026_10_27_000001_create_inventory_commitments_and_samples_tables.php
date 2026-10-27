@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration {
     public function up(): void
@@ -27,6 +28,21 @@ return new class extends Migration {
             $table->timestamp('shipped_at')->nullable();
             $table->timestamps();
         });
+
+        // Seed on-hand stock from historical PO receipts so existing received goods are not lost.
+        $receivedRows = DB::table('purchase_order_items')
+            ->select('product_id', DB::raw('SUM(received_quantity) as received_total'))
+            ->whereNotNull('product_id')
+            ->groupBy('product_id')
+            ->get();
+        foreach ($receivedRows as $row) {
+            if ((float) $row->received_total > 0) {
+                DB::table('inventory_stocks')->updateOrInsert(
+                    ['product_id' => $row->product_id],
+                    ['quantity_on_hand' => $row->received_total, 'created_at' => now(), 'updated_at' => now()]
+                );
+            }
+        }
 
         Schema::create('samples', function (Blueprint $table) {
             $table->id();
